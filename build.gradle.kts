@@ -21,14 +21,15 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.cloud:spring-cloud-starter-openfeign:4.1.3")
+    implementation("org.springframework.kafka:spring-kafka:3.2.4")
     implementation("org.postgresql:postgresql:42.7.3")
     compileOnly("org.projectlombok:lombok:1.18.32")
     annotationProcessor("org.projectlombok:lombok:1.18.32")
+    implementation("org.liquibase:liquibase-core")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.mockito:mockito-core:5.11.0")
-    implementation("org.liquibase:liquibase-core")
 }
 
 tasks.withType<Test> {

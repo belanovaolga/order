@@ -1,6 +1,7 @@
 package com.example.order_module.serviceTest;
 
 import com.example.order_module.exception.OrderNotFound;
+import com.example.order_module.kafka.KafkaSender;
 import com.example.order_module.mapper.OrderMapper;
 import com.example.order_module.model.OrderEntity;
 import com.example.order_module.model.request.IdRequest;
@@ -18,7 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.time.LocalDateTime;
-import java.time.Month;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +32,7 @@ class OrderServiceTest {
     private final OrderRepository mockOrderRepository;
     private final RestConsumerImpl mockRestConsumerImpl;
     private final OrderMapper orderMapper;
+    private final LocalDateTime dataTime;
     private final OrderEntity order1;
     private final OrderEntity order2;
     private final OrderEntity orderNew;
@@ -41,11 +43,14 @@ class OrderServiceTest {
         mockOrderRepository = Mockito.mock(OrderRepository.class);
         orderMapper = new OrderMapper();
         mockRestConsumerImpl = Mockito.mock(RestConsumerImpl.class);
-        orderService = new OrderServiceImpl(mockOrderRepository, mockRestConsumerImpl, orderMapper);
+        KafkaSender kafkaSender = Mockito.mock(KafkaSender.class);
+        orderService = new OrderServiceImpl(mockOrderRepository, mockRestConsumerImpl, orderMapper, kafkaSender);
 
-        order1 = OrderEntity.builder().orderDate(LocalDateTime.of(2024, Month.OCTOBER, 2, 8, 12)).customerId(1L).productId(1L).productName("apple").price(89.99).count(1L).sum(89.99).build();
-        order2 = OrderEntity.builder().orderDate(LocalDateTime.of(2024, Month.OCTOBER, 2, 8, 12)).customerId(1L).productId(2L).productName("lemon").price(119.99).count(1L).sum(119.99).build();
-        orderNew = OrderEntity.builder().orderDate(LocalDateTime.of(2024, Month.OCTOBER, 2, 8, 12)).customerId(1L).productId(1L).productName("apple").price(89.99).count(2L).sum(179.98).build();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        dataTime = LocalDateTime.parse(LocalDateTime.now().format(formatter), formatter);
+        order1 = OrderEntity.builder().orderDate(dataTime).customerId(1L).productId(1L).productName("apple").price(89.99).count(1L).sum(89.99).build();
+        order2 = OrderEntity.builder().orderDate(dataTime).customerId(1L).productId(2L).productName("lemon").price(119.99).count(1L).sum(119.99).build();
+        orderNew = OrderEntity.builder().orderDate(dataTime).customerId(1L).productId(1L).productName("apple").price(89.99).count(2L).sum(179.98).build();
         product1 = ProductEntityResponse.builder().id(1L).name("apple").description("gold apple").count(45L).currentPrice(89.99).build();
         product2 = ProductEntityResponse.builder().id(2L).name("lemon").description("soul lemon").count(76L).currentPrice(119.99).build();
     }
@@ -58,7 +63,7 @@ class OrderServiceTest {
         Mockito.when(mockOrderRepository.save(orderEntity)).thenReturn(orderNew);
 
         OrderEntity actualOrder = orderService.createOrder(orderCreateRequest);
-        actualOrder.setOrderDate(LocalDateTime.of(2024, Month.OCTOBER, 2, 8, 12));
+        actualOrder.setOrderDate(dataTime);
 
         assertEquals(orderNew, actualOrder);
     }
