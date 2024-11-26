@@ -7,6 +7,7 @@ import com.example.order_module.model.OrderEntity;
 import com.example.order_module.model.request.IdRequest;
 import com.example.order_module.model.request.OrderCreateRequest;
 import com.example.order_module.model.request.OrderUpdateRequest;
+import com.example.order_module.model.request.ProductCountDto;
 import com.example.order_module.model.response.OrderListResponse;
 import com.example.order_module.model.response.OrderResponse;
 import com.example.order_module.model.response.PersonalOfferResponse;
@@ -31,6 +32,7 @@ class OrderServiceTest {
     private final OrderService orderService;
     private final OrderRepository mockOrderRepository;
     private final RestConsumerImpl mockRestConsumerImpl;
+    private final KafkaSender mockKafkaSender;
     private final OrderMapper orderMapper;
     private final LocalDateTime dataTime;
     private final OrderEntity order1;
@@ -43,8 +45,8 @@ class OrderServiceTest {
         mockOrderRepository = Mockito.mock(OrderRepository.class);
         orderMapper = new OrderMapper();
         mockRestConsumerImpl = Mockito.mock(RestConsumerImpl.class);
-        KafkaSender kafkaSender = Mockito.mock(KafkaSender.class);
-        orderService = new OrderServiceImpl(mockOrderRepository, mockRestConsumerImpl, orderMapper, kafkaSender);
+        mockKafkaSender = Mockito.mock(KafkaSender.class);
+        orderService = new OrderServiceImpl(mockOrderRepository, mockRestConsumerImpl, orderMapper, mockKafkaSender);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
         dataTime = LocalDateTime.parse(LocalDateTime.now().format(formatter), formatter);
@@ -61,6 +63,7 @@ class OrderServiceTest {
         Mockito.when(mockRestConsumerImpl.getProduct(product1.getId())).thenReturn(product1);
         OrderEntity orderEntity = orderMapper.toOrderEntity(orderCreateRequest, product1);
         Mockito.when(mockOrderRepository.save(orderEntity)).thenReturn(orderNew);
+        Mockito.doNothing().when(mockKafkaSender).sendProductCount(ProductCountDto.builder().productId(product1.getId()).count(product1.getCount()).deleteProduct(true).build());
 
         OrderEntity actualOrder = orderService.createOrder(orderCreateRequest);
         actualOrder.setOrderDate(dataTime);
@@ -74,6 +77,8 @@ class OrderServiceTest {
         Mockito.when(mockOrderRepository.findById(order2.getId())).thenReturn(Optional.of(order2));
         Mockito.when(mockRestConsumerImpl.getProduct(product1.getId())).thenReturn(product1);
         Mockito.when(mockOrderRepository.save(order2)).thenReturn(order2);
+        Mockito.doNothing().when(mockKafkaSender).sendProductCount(ProductCountDto.builder().productId(product1.getId()).count(product1.getCount()).deleteProduct(false).build());
+        Mockito.doNothing().when(mockKafkaSender).sendProductCount(ProductCountDto.builder().productId(product1.getId()).count(product1.getCount()).deleteProduct(true).build());
 
         OrderEntity actualOrder = orderService.updateOrder(order2.getId(), orderUpdateRequest);
 
@@ -106,6 +111,7 @@ class OrderServiceTest {
         orderService.deleteOrder(order1.getId());
 
         Mockito.when(mockOrderRepository.findById(order1.getId())).thenReturn(Optional.empty());
+        Mockito.doNothing().when(mockKafkaSender).sendProductCount(ProductCountDto.builder().productId(product1.getId()).count(product1.getCount()).deleteProduct(false).build());
 
         assertThrows(OrderNotFound.class, () -> {
             orderService.findOrderById(product1.getId());
