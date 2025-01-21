@@ -20,6 +20,7 @@ repositories {
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.springframework.boot:spring-boot-starter-mail")
     implementation("org.springframework.cloud:spring-cloud-starter-openfeign:4.1.3")
     implementation("org.springframework.kafka:spring-kafka:3.2.4")
     implementation("org.postgresql:postgresql:42.7.3")
