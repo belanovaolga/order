@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Personal Offer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .offer-container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .product {
+            border-bottom: 1px solid #ccc;
+            padding: 10px 0;
+        }
+        .product:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+<h1>Hello! It's personal offer for you:</h1>
+<div class="offer-container">
+    <div class="product" th:each="product : ${personalOffer.personalOfferList}">
+        <h2 th:text="${product.name}"></h2>
+        <p><strong>Description:</strong> <span th:text="${product.description}"></span></p>
+        <p><strong>Count:</strong> <span th:text="${product.count}"></span></p>
+        <p><strong>Price:</strong> $<span th:text="${product.currentPrice}"></span></p>
+    </div>
+</div>
+</body>
+</html>
+
