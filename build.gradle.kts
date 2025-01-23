@@ -2,6 +2,7 @@ plugins {
     java
     id("org.springframework.boot") version "3.3.3"
     id("io.spring.dependency-management") version "1.1.6"
+    id("io.freefair.lombok") version "6.4.3"
 }
 
 group = "com.example"
@@ -28,8 +29,10 @@ dependencies {
     implementation("org.liquibase:liquibase-core")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.testcontainers:junit-jupiter:1.19.8")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.mockito:mockito-core:5.11.0")
+    testImplementation("org.testcontainers:postgresql:1.19.8")
 }
 
 tasks.withType<Test> {

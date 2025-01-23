@@ -14,7 +14,7 @@ import com.example.order_module.model.response.OrderResponse;
 import com.example.order_module.model.response.PersonalOfferResponse;
 import com.example.order_module.model.response.ProductEntityResponse;
 import com.example.order_module.repository.OrderRepository;
-import com.example.order_module.rest.RestConsumerImpl;
+import com.example.order_module.rest.RestConsumer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +27,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
-    private final RestConsumerImpl restConsumerImpl;
+    private final RestConsumer restConsumer;
     private final OrderMapper orderMapper;
     private final KafkaSender kafkaSender;
 
@@ -35,7 +35,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderEntity createOrder(OrderCreateRequest orderCreateRequest) {
         countEnough(orderCreateRequest.getProductId(), orderCreateRequest.getCount());
-        ProductEntityResponse productEntityResponse = restConsumerImpl.getProduct(orderCreateRequest.getProductId());
+        ProductEntityResponse productEntityResponse = restConsumer.getProduct(orderCreateRequest.getProductId());
 
         OrderEntity orderEntity = orderMapper.toOrderEntity(orderCreateRequest, productEntityResponse);
 
@@ -66,7 +66,7 @@ public class OrderServiceImpl implements OrderService {
                     countEnough(orderUpdateRequest.getProductId(), difference);
                 }
 
-                Double price = restConsumerImpl.getProduct(orderUpdateRequest.getProductId()).getCurrentPrice();
+                Double price = restConsumer.getProduct(orderUpdateRequest.getProductId()).getCurrentPrice();
 
                 currentOrder.setCount(updateCount);
                 currentOrder.setSum(updateCount * price);
@@ -83,7 +83,7 @@ public class OrderServiceImpl implements OrderService {
         } else {
             countEnough(orderUpdateRequest.getProductId(), updateCount);
 
-            ProductEntityResponse productEntityResponse = restConsumerImpl.getProduct(orderUpdateRequest.getProductId());
+            ProductEntityResponse productEntityResponse = restConsumer.getProduct(orderUpdateRequest.getProductId());
             Double price = productEntityResponse.getCurrentPrice();
 
             currentOrder.setProductId(orderUpdateRequest.getProductId());
@@ -140,7 +140,7 @@ public class OrderServiceImpl implements OrderService {
         List<OrderEntity> personalList = orderRepository.findAllByCustomerId(customerId).orElseThrow(OrderNotFound::new);
 
         if (personalList.isEmpty()) {
-            return restConsumerImpl.getPOForNoOrders();
+            return restConsumer.getPOForNoOrders();
         }
 
         List<Long> prodId = personalList.stream()
@@ -148,14 +148,14 @@ public class OrderServiceImpl implements OrderService {
                 .map(OrderEntity::getProductId)
                 .toList();
 
-        return restConsumerImpl.getTwoProductsPO(IdRequest.builder().productIdList(prodId).build());
+        return restConsumer.getTwoProductsPO(IdRequest.builder().productIdList(prodId).build());
     }
 
     private void countEnough(
             Long productId,
             Long currentCount
     ) {
-        Long productCount = restConsumerImpl.getProduct(productId).getCount();
+        Long productCount = restConsumer.getProduct(productId).getCount();
         if (productCount < currentCount) {
             throw new NotEnoughGoods();
         }
