@@ -1,9 +1,10 @@
 package com.example.order.module.service;
 
+import com.example.order.module.exception.MessageException;
 import com.example.order.module.model.metadata.ScheduleMetadata;
-import com.example.order.module.model.response.EmployeeEntityResponse;
-import com.example.order.module.model.response.EmployeeListResponse;
-import com.example.order.module.model.response.PersonalOfferResponse;
+import com.example.order.module.model.request.PersonalOfferData;
+import com.example.order.module.model.request.PersonalOfferListRequest;
+import com.example.order.module.model.response.*;
 import com.example.order.module.rest.RestConsumer;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -16,7 +17,8 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -28,29 +30,59 @@ public class ScheduledTaskService {
     private final RestConsumer restConsumer;
     private final TemplateEngine templateEngine;
 
-    @Scheduled(cron = "0 0 19 * * ?")
-    public void sendPersonalOffer() throws MessagingException {
+    @Scheduled(cron = "${schedule.time}")
+    public void createAndSendPersonalOffer() {
         EmployeeListResponse allEmployees = restConsumer.getAllEmployees();
         List<EmployeeEntityResponse> employeeResponseList = allEmployees.getEmployeeResponseList();
+        Map<Long, String> employeeIdEmailMap = new HashMap<>();
+        employeeResponseList.forEach(employeeEntityResponse -> employeeIdEmailMap.put(employeeEntityResponse.getId(), employeeEntityResponse.getEmail()));
 
-        for (EmployeeEntityResponse employeeEntityResponse : employeeResponseList) {
-            MimeMessage mimeMessage = javaMailSender.createMimeMessage();
+        Set<Long> employeeIdList = employeeIdEmailMap.keySet();
+        List<OrderResponse> orderResponseList = orderService.getAllOrders().getOrderList();
+
+        List<PersonalOfferData> personalOfferDataList = employeeIdList.stream()
+                .flatMap(
+                        employeeId -> {
+                            List<Long> productIdList = new ArrayList<>();
+                            return orderResponseList.stream().filter(x -> x.getCustomerId().equals(employeeId))
+                                    .filter(x -> x.getOrderDate().isAfter(LocalDateTime.now().minusMonths(1)))
+                                    .map(orderResponse -> {
+                                        Long productId = orderResponse.getProductId();
+                                        productIdList.add(productId);
+                                        return productId;
+                                    })
+                                    .map(productId -> PersonalOfferData.builder().employeeId(employeeId).productIdList(productIdList).build());
+                        }
+                ).toList();
+
+        PersonalOfferListResponse personalOfferList = orderService.getPersonalOfferList(PersonalOfferListRequest.builder().personalOfferDataList(personalOfferDataList).build());
+
+        personalOfferList.getPersonalOfferForEmployeeList()
+                .forEach(personalOfferForEmployee ->
+                        sendPersonalOffer(employeeIdEmailMap.get(personalOfferForEmployee.getEmployeeId()), personalOfferForEmployee.getPersonalOfferResponse()));
+
+        log.info("Email was sent");
+    }
+
+    private void sendPersonalOffer(String email, PersonalOfferResponse personalOfferResponse) {
+        MimeMessage mimeMessage = javaMailSender.createMimeMessage();
+
+        try {
             MimeMessageHelper messageHelper = new MimeMessageHelper(mimeMessage, true);
 
-            PersonalOfferResponse personalOffer = orderService.getPersonalOffer(employeeEntityResponse.getId());
             Context context = new Context();
-            context.setVariable("personalOffer", personalOffer);
+            context.setVariable("personalOffer", personalOfferResponse);
             String emailContent = templateEngine.process("emailPersonalOffer", context);
 
             messageHelper.setFrom(scheduleMetadata.getUsername() + "@mail.ru");
-            messageHelper.setTo(employeeEntityResponse.getEmail());
+            messageHelper.setTo(email);
             messageHelper.setSubject(scheduleMetadata.getSubject());
             messageHelper.setText(emailContent, true);
 
-            javaMailSender.send(mimeMessage);
-
+        } catch (MessagingException messagingException) {
+            throw new MessageException();
         }
 
-        log.info("Email was sent");
+        javaMailSender.send(mimeMessage);
     }
 }

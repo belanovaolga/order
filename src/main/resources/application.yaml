@@ -33,8 +33,9 @@ spring:
     subject: Your personal offer
 
 service:
-  url:
-    product: http://localhost:8000/product/
-    twoProductsPO: twoProductsPO
-    poForNoOrders: poForNoOrders
-    employee: http://localhost:8090/employee
+  host:
+    product: localhost:8700
+    employee: localhost:8090
+
+schedule:
+  time: "0 0 19 * * ?"

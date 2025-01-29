@@ -7,6 +7,7 @@ import com.example.order.module.model.response.ProductEntityResponse;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Component
 public class OrderMapper {
@@ -34,5 +35,11 @@ public class OrderMapper {
                 .count(orderEntity.getCount())
                 .sum(orderEntity.getSum())
                 .build();
+    }
+
+    public List<OrderResponse> toOrderResponseList(List<OrderEntity> orderEntityList) {
+        return orderEntityList.stream()
+                .map(this::toOrderResponse)
+                .toList();
     }
 }

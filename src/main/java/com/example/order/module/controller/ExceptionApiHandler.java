@@ -1,8 +1,8 @@
 package com.example.order.module.controller;
 
+import com.example.order.module.exception.MessageException;
 import com.example.order.module.exception.NotEnoughGoods;
 import com.example.order.module.exception.OrderNotFound;
-import jakarta.mail.MessagingException;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -20,8 +20,8 @@ public class ExceptionApiHandler {
         return new ResponseStatusException(HttpStatusCode.valueOf(400), "There are not enough goods");
     }
 
-    @ExceptionHandler(MessagingException.class)
-    public ResponseStatusException messagingException(MessagingException messagingException) {
-        return new ResponseStatusException(HttpStatusCode.valueOf(500), "Global Error: " + messagingException.getMessage());
+    @ExceptionHandler(MessageException.class)
+    public ResponseStatusException messagingException(MessageException messageException) {
+        return new ResponseStatusException(HttpStatusCode.valueOf(500), "Couldn't send email");
     }
 }

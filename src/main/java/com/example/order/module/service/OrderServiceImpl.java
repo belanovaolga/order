@@ -5,14 +5,8 @@ import com.example.order.module.exception.OrderNotFound;
 import com.example.order.module.kafka.KafkaSender;
 import com.example.order.module.mapper.OrderMapper;
 import com.example.order.module.model.OrderEntity;
-import com.example.order.module.model.request.IdRequest;
-import com.example.order.module.model.request.OrderCreateRequest;
-import com.example.order.module.model.request.OrderUpdateRequest;
-import com.example.order.module.model.request.ProductCountDto;
-import com.example.order.module.model.response.OrderListResponse;
-import com.example.order.module.model.response.OrderResponse;
-import com.example.order.module.model.response.PersonalOfferResponse;
-import com.example.order.module.model.response.ProductEntityResponse;
+import com.example.order.module.model.request.*;
+import com.example.order.module.model.response.*;
 import com.example.order.module.repository.OrderRepository;
 import com.example.order.module.rest.RestConsumerImpl;
 import lombok.RequiredArgsConstructor;
@@ -151,6 +145,17 @@ public class OrderServiceImpl implements OrderService {
         return restConsumerImpl.getTwoProductsPO(IdRequest.builder().productIdList(prodId).build());
     }
 
+    @Override
+    public OrderListResponse getAllOrders() {
+        List<OrderEntity> orderEntityList = findAll();
+        return OrderListResponse.builder().orderList(orderMapper.toOrderResponseList(orderEntityList)).build();
+    }
+
+    @Override
+    public PersonalOfferListResponse getPersonalOfferList(PersonalOfferListRequest personalOfferListRequest) {
+        return restConsumerImpl.getPersonalOfferList(personalOfferListRequest);
+    }
+
     private void countEnough(
             Long productId,
             Long currentCount
@@ -163,5 +168,9 @@ public class OrderServiceImpl implements OrderService {
 
     private OrderEntity findById(Long id) {
         return orderRepository.findById(id).orElseThrow(OrderNotFound::new);
+    }
+
+    private List<OrderEntity> findAll() {
+        return orderRepository.findAll();
     }
 }
