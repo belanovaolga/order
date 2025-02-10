@@ -33,6 +33,7 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.mockito:mockito-core:5.11.0")
     testImplementation("org.testcontainers:postgresql:1.19.8")
+    testImplementation("org.jeasy:easy-random-core:5.0.0")
 }
 
 tasks.withType<Test> {

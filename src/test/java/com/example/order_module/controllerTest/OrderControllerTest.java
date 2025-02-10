@@ -1,98 +1,111 @@
 package com.example.order_module.controllerTest;
 
+import com.example.order_module.kafka.KafkaSender;
+import com.example.order_module.model.OrderEntity;
 import com.example.order_module.model.request.OrderCreateRequest;
 import com.example.order_module.model.request.OrderUpdateRequest;
+import com.example.order_module.model.request.ProductCountDto;
 import com.example.order_module.model.response.ProductEntityResponse;
+import com.example.order_module.repository.OrderRepository;
 import com.example.order_module.rest.RestConsumer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
+import org.jeasy.random.EasyRandom;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@Testcontainers
-class OrderControllerTest {
-    @Container
-    private static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgres:latest"));
+class OrderControllerTest extends ControllerTest {
     @Autowired
     private MockMvc mockMvc;
     @Autowired
     private ObjectMapper objectMapper;
+    private final EasyRandom generator;
     @MockBean
     private RestConsumer restConsumer;
+    @Autowired
+    private OrderRepository orderRepository;
+    @MockBean
+    private KafkaSender kafkaSender;
+
+    OrderControllerTest() {
+        this.generator = new EasyRandom();
+    }
+
+    @BeforeEach
+    public void cleanDataBase() {
+        orderRepository.deleteAll();
+    }
 
     @Test
     @SneakyThrows
     void shouldCreateOrder() {
-        OrderCreateRequest orderCreateRequest = OrderCreateRequest.builder().customerId(1L).productId(1L).count(2L).build();
-        ProductEntityResponse productEntityResponse = ProductEntityResponse.builder().id(1L).name("apple").description("gold apple").count(25L).currentPrice(104.99).build();
-        Mockito.when(restConsumer.getProduct(1L)).thenReturn(productEntityResponse);
+        OrderEntity orderEntity = generator.nextObject(OrderEntity.class);
+        OrderCreateRequest orderCreateRequest = mergeToOrderCreateRequest(orderEntity);
+        ProductEntityResponse productEntityResponse = mergeToProductEntityResponse(orderEntity);
+        Mockito.when(restConsumer.getProduct(productEntityResponse.getId())).thenReturn(productEntityResponse);
+        Mockito.doNothing().when(kafkaSender).sendProductCount(mergeToProductCountDto(orderEntity));
 
-        mockMvc.perform(MockMvcRequestBuilders.post("http://localhost:8080/order")
+        mockMvc.perform(MockMvcRequestBuilders.post("/order")
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .accept(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(orderCreateRequest)))
                 .andExpect(status().isOk())
-//              нужно МЕНЯТЬ ЦИФРУ при каждом последующем запуске теста
-                .andExpect(jsonPath("$.id").value(19))
-//                .andExpect(jsonPath("$.number").value(null))
-//                .andExpect(jsonPath("$.orderDate").value())
-                .andExpect(jsonPath("$.customerId").value(1))
-                .andExpect(jsonPath("$.productId").value(1))
-                .andExpect(jsonPath("$.productName").value("apple"))
-                .andExpect(jsonPath("$.price").value(104.99))
-                .andExpect(jsonPath("$.count").value(2))
-                .andExpect(jsonPath("$.sum").value(209.98));
+                .andExpect(jsonPath("$.customerId").value(orderEntity.getCustomerId()))
+                .andExpect(jsonPath("$.productId").value(orderEntity.getProductId()))
+                .andExpect(jsonPath("$.productName").value(orderEntity.getProductName()))
+                .andExpect(jsonPath("$.price").value(orderEntity.getPrice()))
+                .andExpect(jsonPath("$.count").value(orderEntity.getCount()))
+                .andExpect(jsonPath("$.sum").value(orderEntity.getPrice() * orderEntity.getCount()));
     }
 
     @Test
     @SneakyThrows
     void shouldUpdateOrder() {
-//      нужно МЕНЯТЬ ЦИФРУ при каждом последующем запуске теста
-        Long orderId = 13L;
-        OrderUpdateRequest orderUpdateRequest = OrderUpdateRequest.builder().productId(2L).count(2L).build();
-        ProductEntityResponse productEntityResponse = ProductEntityResponse.builder().id(2L).name("apple").description("gold apple").count(25L).currentPrice(104.99).build();
-        Mockito.when(restConsumer.getProduct(2L)).thenReturn(productEntityResponse);
+        OrderEntity orderEntity = generator.nextObject(OrderEntity.class);
+        OrderEntity savedOrderEntity = orderRepository.save(orderEntity);
 
-        mockMvc.perform(MockMvcRequestBuilders.put("http://localhost:8080/order/{orderId}", orderId)
+        Long orderId = savedOrderEntity.getId();
+        OrderEntity updatedOrderEntity = generator.nextObject(OrderEntity.class);
+        updatedOrderEntity.setId(orderId);
+        updatedOrderEntity.setCustomerId(orderEntity.getCustomerId());
+        OrderUpdateRequest orderUpdateRequest = OrderUpdateRequest.builder()
+                .productId(updatedOrderEntity.getProductId())
+                .count(updatedOrderEntity.getCount())
+                .build();
+        ProductEntityResponse productEntityResponse = mergeToProductEntityResponse(updatedOrderEntity);
+        Mockito.when(restConsumer.getProduct(orderUpdateRequest.getProductId())).thenReturn(productEntityResponse);
+
+        mockMvc.perform(MockMvcRequestBuilders.put("/order/{orderId}", orderId)
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .accept(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(orderUpdateRequest)))
                 .andExpect(status().isOk())
-//              нужно МЕНЯТЬ ЦИФРУ при каждом последующем запуске теста
-                .andExpect(jsonPath("$.id").value(14))
-//                .andExpect(jsonPath("$.number").value(null))
-//                .andExpect(jsonPath("$.orderDate").value())
-                .andExpect(jsonPath("$.customerId").value(1))
-                .andExpect(jsonPath("$.productId").value(2))
-                .andExpect(jsonPath("$.productName").value("apple"))
-                .andExpect(jsonPath("$.price").value(104.99))
-                .andExpect(jsonPath("$.count").value(2))
-                .andExpect(jsonPath("$.sum").value(209.98));
+                .andExpect(jsonPath("$.id").value(orderId))
+                .andExpect(jsonPath("$.customerId").value(updatedOrderEntity.getCustomerId()))
+                .andExpect(jsonPath("$.productId").value(updatedOrderEntity.getProductId()))
+                .andExpect(jsonPath("$.productName").value(updatedOrderEntity.getProductName()))
+                .andExpect(jsonPath("$.price").value(updatedOrderEntity.getPrice()))
+                .andExpect(jsonPath("$.count").value(updatedOrderEntity.getCount()))
+                .andExpect(jsonPath("$.sum").value(updatedOrderEntity.getCount() * updatedOrderEntity.getPrice()));
     }
 
     @Test
     @SneakyThrows
     void shouldDeleteOrder() {
-//      нужно МЕНЯТЬ ЦИФРУ при каждом последующем запуске теста
-        Long orderId = 15L;
+        OrderEntity orderEntity = generator.nextObject(OrderEntity.class);
+        OrderEntity savedOrderEntity = orderRepository.save(orderEntity);
+        Long orderId = savedOrderEntity.getId();
 
-        mockMvc.perform(MockMvcRequestBuilders.delete("http://localhost:8080/order/{orderId}", orderId)
+        mockMvc.perform(MockMvcRequestBuilders.delete("/order/{orderId}", orderId)
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .accept(MediaType.APPLICATION_JSON)
                         .characterEncoding("UTF-8"))
@@ -104,7 +117,7 @@ class OrderControllerTest {
     void shouldDeleteOrder_whenOrderNotFound() {
         Long orderId = 15L;
 
-        mockMvc.perform(MockMvcRequestBuilders.delete("http://localhost:8080/order/{orderId}", orderId)
+        mockMvc.perform(MockMvcRequestBuilders.delete("/order/{orderId}", orderId)
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .accept(MediaType.APPLICATION_JSON)
                         .characterEncoding("UTF-8"))
@@ -116,7 +129,7 @@ class OrderControllerTest {
     void shouldOrdersList() {
         Long customerId = 1L;
 
-        mockMvc.perform(MockMvcRequestBuilders.get("http://localhost:8080/order/{customerId}/list", customerId)
+        mockMvc.perform(MockMvcRequestBuilders.get("/order/{customerId}/list", customerId)
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .accept(MediaType.APPLICATION_JSON)
                         .characterEncoding("UTF-8"))
@@ -128,10 +141,36 @@ class OrderControllerTest {
     void shouldPersonalOffer() {
         Long customerId = 1L;
 
-        mockMvc.perform(MockMvcRequestBuilders.get("http://localhost:8080/order/{customerId}/personal-offer", customerId)
+        mockMvc.perform(MockMvcRequestBuilders.get("/order/{customerId}/personal-offer", customerId)
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .accept(MediaType.APPLICATION_JSON)
                         .characterEncoding("UTF-8"))
                 .andExpect(status().isOk());
+    }
+
+    private OrderCreateRequest mergeToOrderCreateRequest(OrderEntity orderEntity) {
+        return OrderCreateRequest.builder()
+                .customerId(orderEntity.getCustomerId())
+                .productId(orderEntity.getProductId())
+                .count(orderEntity.getCount())
+                .build();
+    }
+
+    private ProductEntityResponse mergeToProductEntityResponse(OrderEntity orderEntity) {
+        return ProductEntityResponse.builder()
+                .id(orderEntity.getProductId())
+                .name(orderEntity.getProductName())
+                .description("")
+                .count(orderEntity.getCount())
+                .currentPrice(orderEntity.getPrice())
+                .build();
+    }
+
+    private ProductCountDto mergeToProductCountDto(OrderEntity orderEntity) {
+        return ProductCountDto.builder()
+                .productId(orderEntity.getProductId())
+                .count(orderEntity.getCount())
+                .deleteProduct(true)
+                .build();
     }
 }

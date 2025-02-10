@@ -8,13 +8,4 @@
       </database-info>
     </database-infos>
   </component>
-  <component name="AmplicodePersistenceUnitSettings">
-    <persistence-units>
-      <persistence-unit name="Default">
-        <packages>
-          <package value="com.example.order_module" />
-        </packages>
-      </persistence-unit>
-    </persistence-units>
-  </component>
 </project>

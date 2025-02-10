@@ -34,7 +34,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     @Override
     public OrderEntity createOrder(OrderCreateRequest orderCreateRequest) {
-        countEnough(orderCreateRequest.getProductId(), orderCreateRequest.getCount());
+        checkProductCount(orderCreateRequest.getProductId(), orderCreateRequest.getCount());
         ProductEntityResponse productEntityResponse = restConsumer.getProduct(orderCreateRequest.getProductId());
 
         OrderEntity orderEntity = orderMapper.toOrderEntity(orderCreateRequest, productEntityResponse);
@@ -63,7 +63,7 @@ public class OrderServiceImpl implements OrderService {
             if (!Objects.equals(currentCount, updateCount)) {
                 boolean deleteProduct = currentCount < updateCount;
                 if (deleteProduct) {
-                    countEnough(orderUpdateRequest.getProductId(), difference);
+                    checkProductCount(orderUpdateRequest.getProductId(), difference);
                 }
 
                 Double price = restConsumer.getProduct(orderUpdateRequest.getProductId()).getCurrentPrice();
@@ -81,7 +81,7 @@ public class OrderServiceImpl implements OrderService {
             }
 
         } else {
-            countEnough(orderUpdateRequest.getProductId(), updateCount);
+            checkProductCount(orderUpdateRequest.getProductId(), updateCount);
 
             ProductEntityResponse productEntityResponse = restConsumer.getProduct(orderUpdateRequest.getProductId());
             Double price = productEntityResponse.getCurrentPrice();
@@ -151,7 +151,7 @@ public class OrderServiceImpl implements OrderService {
         return restConsumer.getTwoProductsPO(IdRequest.builder().productIdList(prodId).build());
     }
 
-    private void countEnough(
+    private void checkProductCount(
             Long productId,
             Long currentCount
     ) {
