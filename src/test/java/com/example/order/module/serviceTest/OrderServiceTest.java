@@ -1,7 +1,8 @@
 package com.example.order.module.serviceTest;
 
-import com.example.order.module.exception.OrderNotFound;
+import com.example.order.module.exception.DatabaseException;
 import com.example.order.module.kafka.KafkaSender;
+import com.example.order.module.mapper.OrdMap;
 import com.example.order.module.mapper.OrderMapper;
 import com.example.order.module.model.OrderEntity;
 import com.example.order.module.model.request.IdRequest;
@@ -13,7 +14,7 @@ import com.example.order.module.model.response.OrderResponse;
 import com.example.order.module.model.response.PersonalOfferResponse;
 import com.example.order.module.model.response.ProductEntityResponse;
 import com.example.order.module.repository.OrderRepository;
-import com.example.order.module.rest.RestConsumerImpl;
+import com.example.order.module.rest.RestConsumerProductImpl;
 import com.example.order.module.service.OrderService;
 import com.example.order.module.service.OrderServiceImpl;
 import org.junit.jupiter.api.Test;
@@ -31,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class OrderServiceTest {
     private final OrderService orderService;
     private final OrderRepository mockOrderRepository;
-    private final RestConsumerImpl mockRestConsumerImpl;
+    private final RestConsumerProductImpl mockRestConsumerImpl;
     private final KafkaSender mockKafkaSender;
     private final OrderMapper orderMapper;
     private final LocalDateTime dataTime;
@@ -43,8 +44,8 @@ class OrderServiceTest {
 
     public OrderServiceTest() {
         mockOrderRepository = Mockito.mock(OrderRepository.class);
-        orderMapper = new OrderMapper();
-        mockRestConsumerImpl = Mockito.mock(RestConsumerImpl.class);
+        orderMapper = new OrdMap();
+        mockRestConsumerImpl = Mockito.mock(RestConsumerProductImpl.class);
         mockKafkaSender = Mockito.mock(KafkaSender.class);
         orderService = new OrderServiceImpl(mockOrderRepository, mockRestConsumerImpl, orderMapper, mockKafkaSender);
 
@@ -52,7 +53,7 @@ class OrderServiceTest {
         dataTime = LocalDateTime.parse(LocalDateTime.now().format(formatter), formatter);
         order1 = OrderEntity.builder().orderDate(dataTime).customerId(1L).productId(1L).productName("apple").price(89.99).count(1L).sum(89.99).build();
         order2 = OrderEntity.builder().orderDate(dataTime).customerId(1L).productId(2L).productName("lemon").price(119.99).count(1L).sum(119.99).build();
-        orderNew = OrderEntity.builder().orderDate(dataTime).customerId(1L).productId(1L).productName("apple").price(89.99).count(2L).sum(179.98).build();
+        orderNew = OrderEntity.builder().id(1L).orderDate(dataTime).customerId(1L).productId(1L).productName("apple").price(89.99).count(2L).sum(179.98).build();
         product1 = ProductEntityResponse.builder().id(1L).name("apple").description("gold apple").count(45L).currentPrice(89.99).build();
         product2 = ProductEntityResponse.builder().id(2L).name("lemon").description("soul lemon").count(76L).currentPrice(119.99).build();
     }
@@ -66,6 +67,7 @@ class OrderServiceTest {
         Mockito.doNothing().when(mockKafkaSender).sendProductCount(ProductCountDto.builder().productId(product1.getId()).count(product1.getCount()).deleteProduct(true).build());
 
         OrderEntity actualOrder = orderService.createOrder(orderCreateRequest);
+        actualOrder.setId(1L);
         actualOrder.setOrderDate(dataTime);
 
         assertEquals(orderNew, actualOrder);
@@ -99,7 +101,7 @@ class OrderServiceTest {
     void shouldFindOrderById_whenOrderNotFound() {
         Mockito.when(mockOrderRepository.findById(20L)).thenReturn(Optional.empty());
 
-        assertThrows(OrderNotFound.class, () -> {
+        assertThrows(DatabaseException.class, () -> {
             orderService.findOrderById(20L);
         });
     }
@@ -113,7 +115,7 @@ class OrderServiceTest {
         Mockito.when(mockOrderRepository.findById(order1.getId())).thenReturn(Optional.empty());
         Mockito.doNothing().when(mockKafkaSender).sendProductCount(ProductCountDto.builder().productId(product1.getId()).count(product1.getCount()).deleteProduct(false).build());
 
-        assertThrows(OrderNotFound.class, () -> {
+        assertThrows(DatabaseException.class, () -> {
             orderService.findOrderById(product1.getId());
         });
     }
@@ -146,7 +148,7 @@ class OrderServiceTest {
         List<Long> productIdList = new ArrayList<>();
         productIdList.add(product1.getId());
         productIdList.add(product2.getId());
-        Mockito.when(mockRestConsumerImpl.getTwoProductsPO(IdRequest.builder().productIdList(productIdList).build())).thenReturn(expectedPersonalOfferResponse);
+        Mockito.when(mockRestConsumerImpl.getPersonalOffer(IdRequest.builder().productIdList(productIdList).build())).thenReturn(expectedPersonalOfferResponse);
 
         PersonalOfferResponse actualPersonalOfferResponse = orderService.getPersonalOffer(order1.getCustomerId());
 
@@ -157,7 +159,7 @@ class OrderServiceTest {
     void shouldGetPersonalOffer_whenOrderNotFound() {
         Mockito.when(mockOrderRepository.findAllByCustomerId(order1.getCustomerId())).thenReturn(Optional.empty());
 
-        assertThrows(OrderNotFound.class, () -> {
+        assertThrows(DatabaseException.class, () -> {
             orderService.getPersonalOffer(order1.getCustomerId());
         });
     }
@@ -168,7 +170,9 @@ class OrderServiceTest {
         PersonalOfferResponse expectedPersonalOfferResponse = PersonalOfferResponse.builder().personalOfferList(personalOfferList).build();
 
         Mockito.when(mockOrderRepository.findAllByCustomerId(order1.getCustomerId())).thenReturn(Optional.of(new ArrayList<>()));
-        Mockito.when(mockRestConsumerImpl.getPOForNoOrders()).thenReturn(expectedPersonalOfferResponse);
+        Mockito.when(mockRestConsumerImpl.getPersonalOffer(
+                IdRequest.builder().productIdList(new ArrayList<>()).build()
+        )).thenReturn(expectedPersonalOfferResponse);
 
         PersonalOfferResponse actualPersonalOfferResponse = orderService.getPersonalOffer(order1.getCustomerId());
 

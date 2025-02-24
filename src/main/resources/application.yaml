@@ -34,8 +34,8 @@ spring:
 
 service:
   host:
-    product: localhost:8700
-    employee: localhost:8090
+    product: http://localhost:8700
+    employee: http://localhost:8090
 
 schedule:
   time: "0 0 19 * * ?"

@@ -1,11 +1,11 @@
 package com.example.order.module.service;
 
-import com.example.order.module.exception.MessageException;
+import com.example.order.module.exception.EmailException;
 import com.example.order.module.model.metadata.ScheduleMetadata;
 import com.example.order.module.model.request.PersonalOfferData;
 import com.example.order.module.model.request.PersonalOfferListRequest;
 import com.example.order.module.model.response.*;
-import com.example.order.module.rest.RestConsumer;
+import com.example.order.module.rest.RestConsumerEmployee;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +18,11 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -27,15 +31,15 @@ public class ScheduledTaskService {
     private final JavaMailSender javaMailSender;
     private final ScheduleMetadata scheduleMetadata;
     private final OrderService orderService;
-    private final RestConsumer restConsumer;
+    private final RestConsumerEmployee restConsumerEmployee;
     private final TemplateEngine templateEngine;
 
-    @Scheduled(cron = "${schedule.time}")
+    @Scheduled(cron = "${schedule.send.time}")
     public void createAndSendPersonalOffer() {
-        EmployeeListResponse allEmployees = restConsumer.getAllEmployees();
+        EmployeeListResponse allEmployees = restConsumerEmployee.getAllEmployees();
         List<EmployeeEntityResponse> employeeResponseList = allEmployees.getEmployeeResponseList();
-        Map<Long, String> employeeIdEmailMap = new HashMap<>();
-        employeeResponseList.forEach(employeeEntityResponse -> employeeIdEmailMap.put(employeeEntityResponse.getId(), employeeEntityResponse.getEmail()));
+        Map<Long, String> employeeIdEmailMap = employeeResponseList.stream()
+                .collect(Collectors.toMap(EmployeeEntityResponse::getId, EmployeeEntityResponse::getEmail));
 
         Set<Long> employeeIdList = employeeIdEmailMap.keySet();
         List<OrderResponse> orderResponseList = orderService.getAllOrders().getOrderList();
@@ -58,6 +62,7 @@ public class ScheduledTaskService {
         PersonalOfferListResponse personalOfferList = orderService.getPersonalOfferList(PersonalOfferListRequest.builder().personalOfferDataList(personalOfferDataList).build());
 
         personalOfferList.getPersonalOfferForEmployeeList()
+                .parallelStream()
                 .forEach(personalOfferForEmployee ->
                         sendPersonalOffer(employeeIdEmailMap.get(personalOfferForEmployee.getEmployeeId()), personalOfferForEmployee.getPersonalOfferResponse()));
 
@@ -80,7 +85,7 @@ public class ScheduledTaskService {
             messageHelper.setText(emailContent, true);
 
         } catch (MessagingException messagingException) {
-            throw new MessageException();
+            throw new EmailException("Couldn't send email", 500);
         }
 
         javaMailSender.send(mimeMessage);

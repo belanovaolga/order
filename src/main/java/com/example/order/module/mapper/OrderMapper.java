@@ -4,42 +4,25 @@ import com.example.order.module.model.OrderEntity;
 import com.example.order.module.model.request.OrderCreateRequest;
 import com.example.order.module.model.response.OrderResponse;
 import com.example.order.module.model.response.ProductEntityResponse;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
-@Component
-public class OrderMapper {
-    public OrderEntity toOrderEntity(OrderCreateRequest orderCreateRequest, ProductEntityResponse productEntityResponse) {
-        return OrderEntity.builder()
-                .customerId(orderCreateRequest.getCustomerId())
-                .productId(orderCreateRequest.getProductId())
-                .productName(productEntityResponse.getName())
-                .price(productEntityResponse.getCurrentPrice())
-                .sum(orderCreateRequest.getCount() * productEntityResponse.getCurrentPrice())
-                .count(orderCreateRequest.getCount())
-                .orderDate(LocalDateTime.now())
-                .build();
-    }
+@Mapper
+public interface OrderMapper {
 
-    public OrderResponse toOrderResponse(OrderEntity orderEntity) {
-        return OrderResponse.builder()
-                .id(orderEntity.getId())
-                .number(orderEntity.getNumber())
-                .orderDate(orderEntity.getOrderDate())
-                .customerId(orderEntity.getCustomerId())
-                .productId(orderEntity.getProductId())
-                .productName(orderEntity.getProductName())
-                .price(orderEntity.getPrice())
-                .count(orderEntity.getCount())
-                .sum(orderEntity.getSum())
-                .build();
-    }
+    @Mapping(target = "orderDate", expression = "java(java.time.LocalDateTime.now())")
+    @Mapping(target = "number", expression = "java(null)")
+    @Mapping(source = "orderCreateRequest.customerId", target = "customerId")
+    @Mapping(source = "orderCreateRequest.productId", target = "productId")
+    @Mapping(source = "orderCreateRequest.count", target = "count")
+    @Mapping(source = "productEntityResponse.name", target = "productName")
+    @Mapping(source = "productEntityResponse.currentPrice", target = "price")
+    @Mapping(target = "sum", expression = "java(orderCreateRequest.getCount() * productEntityResponse.getCurrentPrice())")
+    OrderEntity toOrderEntity(OrderCreateRequest orderCreateRequest, ProductEntityResponse productEntityResponse);
 
-    public List<OrderResponse> toOrderResponseList(List<OrderEntity> orderEntityList) {
-        return orderEntityList.stream()
-                .map(this::toOrderResponse)
-                .toList();
-    }
+    OrderResponse toOrderResponse(OrderEntity orderEntity);
+
+    List<OrderResponse> toOrderResponseList(List<OrderEntity> orderEntityList);
 }

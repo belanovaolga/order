@@ -1,27 +1,27 @@
 package com.example.order.module.controller;
 
-import com.example.order.module.exception.MessageException;
-import com.example.order.module.exception.NotEnoughGoods;
-import com.example.order.module.exception.OrderNotFound;
+import com.example.order.module.exception.EmailException;
+import com.example.order.module.exception.DatabaseException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Arrays;
+
+@Slf4j
 @RestControllerAdvice
 public class ExceptionApiHandler {
-    @ExceptionHandler(OrderNotFound.class)
-    public ResponseStatusException productNotFound(OrderNotFound orderNotFound) {
-        return new ResponseStatusException(HttpStatusCode.valueOf(404), "The order does not exist");
+    @ExceptionHandler(DatabaseException.class)
+    public ResponseStatusException databaseException(DatabaseException databaseException) {
+        log.debug(Arrays.toString(databaseException.getStackTrace()));
+        return new ResponseStatusException(HttpStatusCode.valueOf(databaseException.getCode()), databaseException.getMessage());
     }
 
-    @ExceptionHandler(NotEnoughGoods.class)
-    public ResponseStatusException notEnoughGoods(NotEnoughGoods notEnoughGoods) {
-        return new ResponseStatusException(HttpStatusCode.valueOf(400), "There are not enough goods");
-    }
-
-    @ExceptionHandler(MessageException.class)
-    public ResponseStatusException messagingException(MessageException messageException) {
-        return new ResponseStatusException(HttpStatusCode.valueOf(500), "Couldn't send email");
+    @ExceptionHandler(EmailException.class)
+    public ResponseStatusException emailException(EmailException emailException) {
+        log.debug(Arrays.toString(emailException.getStackTrace()));
+        return new ResponseStatusException(HttpStatusCode.valueOf(emailException.getCode()), emailException.getMessage());
     }
 }
