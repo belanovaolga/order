@@ -12,7 +12,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Builder
@@ -27,7 +29,7 @@ public class OrderEntity {
     private Long id;
     private Long number;
     @Column(name = "order_date")
-    private LocalDateTime orderDate;
+    private Long orderDate;
     @Column(name = "customer_id")
     private Long customerId;
     @Column(name = "product_id")
@@ -37,4 +39,10 @@ public class OrderEntity {
     private Double price;
     private Long count;
     private Double sum;
+
+    public LocalDateTime getOrderDate() {
+        return Instant.ofEpochSecond(orderDate)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime();
+    }
 }

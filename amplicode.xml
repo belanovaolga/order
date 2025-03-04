@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="AmplicodeDatabaseMigrationSettings" liquibaseFileType="SQL">
+  <component name="AmplicodeDatabaseMigrationSettings">
     <database-infos>
       <database-info>
         <option name="enabled" value="true" />
@@ -10,7 +10,8 @@
   </component>
   <component name="AmplicodePersistenceUnitSettings">
     <persistence-units>
-      <persistence-unit name="Default">
+      <persistence-unit name="Default"
+                        defaultIncludeChangeLogFile="src/main/resources/db/changelog/db.changelog-master.xml">
         <packages>
           <package value="com.example.order_module" />
         </packages>

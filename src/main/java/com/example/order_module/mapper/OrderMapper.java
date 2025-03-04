@@ -6,6 +6,7 @@ import com.example.order_module.model.response.OrderResponse;
 import com.example.order_module.model.response.ProductEntityResponse;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Component
@@ -18,7 +19,7 @@ public class OrderMapper {
                 .price(productEntityResponse.getCurrentPrice())
                 .sum(orderCreateRequest.getCount() * productEntityResponse.getCurrentPrice())
                 .count(orderCreateRequest.getCount())
-                .orderDate(LocalDateTime.now())
+                .orderDate(Instant.now().getEpochSecond())
                 .build();
     }
 
