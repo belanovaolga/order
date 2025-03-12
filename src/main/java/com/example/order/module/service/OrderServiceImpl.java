@@ -7,7 +7,7 @@ import com.example.order.module.model.OrderEntity;
 import com.example.order.module.model.request.*;
 import com.example.order.module.model.response.*;
 import com.example.order.module.repository.OrderRepository;
-import com.example.order.module.rest.RestConsumerProduct;
+import com.example.order.module.rest.ClientProduct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +21,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
-    private final RestConsumerProduct restConsumerProduct;
+    private final ClientProduct restConsumerProduct;
     private final OrderMapper orderMapper;
     private final KafkaSender kafkaSender;
 

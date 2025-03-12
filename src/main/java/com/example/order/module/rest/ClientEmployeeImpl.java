@@ -8,7 +8,7 @@ import org.springframework.web.client.RestTemplate;
 
 @Component
 @RequiredArgsConstructor
-public class RestConsumerEmployeeImpl implements RestConsumerEmployee {
+public class ClientEmployeeImpl implements ClientEmployee {
     private static final String EMPLOYEE = "/employee/";
     private final RestTemplate restTemplate;
     @Value("${service.host.employee}")

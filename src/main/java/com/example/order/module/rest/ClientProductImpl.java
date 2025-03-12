@@ -12,7 +12,7 @@ import org.springframework.web.client.RestTemplate;
 
 @Component
 @RequiredArgsConstructor
-public class RestConsumerProductImpl implements RestConsumerProduct {
+public class ClientProductImpl implements ClientProduct {
     private final RestTemplate restTemplate;
     @Value("${service.host.product}")
     private String serviceHostProduct;

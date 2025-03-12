@@ -6,7 +6,7 @@ import com.example.order.module.model.response.PersonalOfferListResponse;
 import com.example.order.module.model.response.PersonalOfferResponse;
 import com.example.order.module.model.response.ProductEntityResponse;
 
-public interface RestConsumerProduct {
+public interface ClientProduct {
     ProductEntityResponse getProduct(Long productId);
 
     PersonalOfferResponse getPersonalOffer(IdRequest productIdList);

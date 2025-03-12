@@ -2,8 +2,8 @@ package com.example.order.module.serviceTest;
 
 import com.example.order.module.exception.DatabaseException;
 import com.example.order.module.kafka.KafkaSender;
-import com.example.order.module.mapper.OrdMap;
 import com.example.order.module.mapper.OrderMapper;
+import com.example.order.module.mapper.OrderMapperImpl;
 import com.example.order.module.model.OrderEntity;
 import com.example.order.module.model.request.IdRequest;
 import com.example.order.module.model.request.OrderCreateRequest;
@@ -14,7 +14,7 @@ import com.example.order.module.model.response.OrderResponse;
 import com.example.order.module.model.response.PersonalOfferResponse;
 import com.example.order.module.model.response.ProductEntityResponse;
 import com.example.order.module.repository.OrderRepository;
-import com.example.order.module.rest.RestConsumerProductImpl;
+import com.example.order.module.rest.ClientProductImpl;
 import com.example.order.module.service.OrderService;
 import com.example.order.module.service.OrderServiceImpl;
 import org.junit.jupiter.api.Test;
@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class OrderServiceTest {
     private final OrderService orderService;
     private final OrderRepository mockOrderRepository;
-    private final RestConsumerProductImpl mockRestConsumerImpl;
+    private final ClientProductImpl mockRestConsumerImpl;
     private final KafkaSender mockKafkaSender;
     private final OrderMapper orderMapper;
     private final LocalDateTime dataTime;
@@ -44,8 +44,8 @@ class OrderServiceTest {
 
     public OrderServiceTest() {
         mockOrderRepository = Mockito.mock(OrderRepository.class);
-        orderMapper = new OrdMap();
-        mockRestConsumerImpl = Mockito.mock(RestConsumerProductImpl.class);
+        orderMapper = new OrderMapperImpl();
+        mockRestConsumerImpl = Mockito.mock(ClientProductImpl.class);
         mockKafkaSender = Mockito.mock(KafkaSender.class);
         orderService = new OrderServiceImpl(mockOrderRepository, mockRestConsumerImpl, orderMapper, mockKafkaSender);
 

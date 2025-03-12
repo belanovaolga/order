@@ -5,7 +5,7 @@ import com.example.order.module.model.metadata.ScheduleMetadata;
 import com.example.order.module.model.request.PersonalOfferData;
 import com.example.order.module.model.request.PersonalOfferListRequest;
 import com.example.order.module.model.response.*;
-import com.example.order.module.rest.RestConsumerEmployee;
+import com.example.order.module.rest.ClientEmployee;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -31,12 +31,12 @@ public class ScheduledTaskService {
     private final JavaMailSender javaMailSender;
     private final ScheduleMetadata scheduleMetadata;
     private final OrderService orderService;
-    private final RestConsumerEmployee restConsumerEmployee;
+    private final ClientEmployee clientEmployee;
     private final TemplateEngine templateEngine;
 
     @Scheduled(cron = "${schedule.send.time}")
     public void createAndSendPersonalOffer() {
-        EmployeeListResponse allEmployees = restConsumerEmployee.getAllEmployees();
+        EmployeeListResponse allEmployees = clientEmployee.getAllEmployees();
         List<EmployeeEntityResponse> employeeResponseList = allEmployees.getEmployeeResponseList();
         Map<Long, String> employeeIdEmailMap = employeeResponseList.stream()
                 .collect(Collectors.toMap(EmployeeEntityResponse::getId, EmployeeEntityResponse::getEmail));
@@ -62,7 +62,6 @@ public class ScheduledTaskService {
         PersonalOfferListResponse personalOfferList = orderService.getPersonalOfferList(PersonalOfferListRequest.builder().personalOfferDataList(personalOfferDataList).build());
 
         personalOfferList.getPersonalOfferForEmployeeList()
-                .parallelStream()
                 .forEach(personalOfferForEmployee ->
                         sendPersonalOffer(employeeIdEmailMap.get(personalOfferForEmployee.getEmployeeId()), personalOfferForEmployee.getPersonalOfferResponse()));
 
