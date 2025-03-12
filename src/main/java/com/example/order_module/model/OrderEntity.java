@@ -1,20 +1,13 @@
 package com.example.order_module.model;
 
-import jakarta.persistence.Id;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.SequenceGenerator;
-import jakarta.persistence.Column;
+import com.example.order_module.converter.InstantLongConverter;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 
 @Entity
 @Builder
@@ -29,7 +22,8 @@ public class OrderEntity {
     private Long id;
     private Long number;
     @Column(name = "order_date")
-    private Long orderDate;
+    @Convert(converter = InstantLongConverter.class)
+    private Instant orderDate;
     @Column(name = "customer_id")
     private Long customerId;
     @Column(name = "product_id")
@@ -39,10 +33,4 @@ public class OrderEntity {
     private Double price;
     private Long count;
     private Double sum;
-
-    public LocalDateTime getOrderDate() {
-        return Instant.ofEpochSecond(orderDate)
-                .atZone(ZoneId.systemDefault())
-                .toLocalDateTime();
-    }
 }
