@@ -16,8 +16,10 @@ import com.example.order_module.model.response.ProductEntityResponse;
 import com.example.order_module.repository.OrderRepository;
 import com.example.order_module.rest.RestConsumer;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,6 +32,7 @@ public class OrderServiceImpl implements OrderService {
     private final RestConsumer restConsumer;
     private final OrderMapper orderMapper;
     private final KafkaSender kafkaSender;
+    private final TransactionTemplate transactionTemplate;
 
     @Transactional
     @Override
@@ -54,6 +57,8 @@ public class OrderServiceImpl implements OrderService {
     public OrderEntity updateOrder(Long orderId, OrderUpdateRequest orderUpdateRequest) {
         OrderEntity currentOrder = findById(orderId);
 
+//        Можно сначала сходить в рест например, а потом уже открыть транзакцию поработать с БД и закрыть
+
         Long updateCount = orderUpdateRequest.getCount();
         Long currentCount = currentOrder.getCount();
         Long currentProductId = currentOrder.getProductId();
@@ -70,7 +75,11 @@ public class OrderServiceImpl implements OrderService {
 
                 currentOrder.setCount(updateCount);
                 currentOrder.setSum(updateCount * price);
-                orderRepository.save(currentOrder);
+                transactionTemplate.execute(status -> {
+                    saveOrder(currentOrder);
+                    return null;
+                });
+//                orderRepository.save(currentOrder);
 
                 Long productCount = difference > 0 ? difference : -difference;
                 kafkaSender.sendProductCount(ProductCountDto.builder()
@@ -91,7 +100,11 @@ public class OrderServiceImpl implements OrderService {
             currentOrder.setPrice(price);
             currentOrder.setCount(updateCount);
             currentOrder.setSum(updateCount * price);
-            orderRepository.save(currentOrder);
+            transactionTemplate.execute(status -> {
+                saveOrder(currentOrder);
+                return null;
+            });
+//            orderRepository.save(currentOrder);
 
             kafkaSender.sendProductCount(ProductCountDto.builder()
                     .productId(currentProductId)
@@ -107,6 +120,10 @@ public class OrderServiceImpl implements OrderService {
         }
 
         return currentOrder;
+    }
+
+    private void saveOrder(OrderEntity orderEntity) {
+        orderRepository.save(orderEntity);
     }
 
     @Override

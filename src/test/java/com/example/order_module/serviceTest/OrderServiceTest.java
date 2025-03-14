@@ -18,6 +18,7 @@ import com.example.order_module.service.OrderService;
 import com.example.order_module.service.OrderServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -46,7 +47,8 @@ class OrderServiceTest {
         orderMapper = new OrderMapper();
         mockRestConsumerImpl = Mockito.mock(RestConsumerImpl.class);
         mockKafkaSender = Mockito.mock(KafkaSender.class);
-        orderService = new OrderServiceImpl(mockOrderRepository, mockRestConsumerImpl, orderMapper, mockKafkaSender);
+        TransactionTemplate transactionTemplate = Mockito.mock(TransactionTemplate.class);
+        orderService = new OrderServiceImpl(mockOrderRepository, mockRestConsumerImpl, orderMapper, mockKafkaSender, transactionTemplate);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
         dataTime = LocalDateTime.parse(LocalDateTime.now().format(formatter), formatter);
