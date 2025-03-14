@@ -72,10 +72,7 @@ public class OrderServiceImpl implements OrderService {
 
                 currentOrder.setCount(updateCount);
                 currentOrder.setSum(updateCount * price);
-                transactionTemplate.execute(status -> {
-                    saveOrder(currentOrder);
-                    return null;
-                });
+                orderRepository.save(currentOrder);
 
                 Long productCount = difference > 0 ? difference : -difference;
                 kafkaSender.sendProductCount(ProductCountDto.builder()
@@ -96,10 +93,7 @@ public class OrderServiceImpl implements OrderService {
             currentOrder.setPrice(price);
             currentOrder.setCount(updateCount);
             currentOrder.setSum(updateCount * price);
-            transactionTemplate.execute(status -> {
-                saveOrder(currentOrder);
-                return null;
-            });
+            orderRepository.save(currentOrder);
 
             kafkaSender.sendProductCount(ProductCountDto.builder()
                     .productId(currentProductId)
@@ -115,10 +109,6 @@ public class OrderServiceImpl implements OrderService {
         }
 
         return currentOrder;
-    }
-
-    private void saveOrder(OrderEntity orderEntity) {
-        orderRepository.save(orderEntity);
     }
 
     @Override
