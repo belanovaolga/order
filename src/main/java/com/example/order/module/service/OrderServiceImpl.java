@@ -25,10 +25,11 @@ public class OrderServiceImpl implements OrderService {
     private final OrderMapper orderMapper;
     private final KafkaSender kafkaSender;
 
+
     @Transactional
     @Override
     public OrderEntity createOrder(OrderCreateRequest orderCreateRequest) {
-        countEnough(orderCreateRequest.getProductId(), orderCreateRequest.getCount());
+        checkProductCount(orderCreateRequest.getProductId(), orderCreateRequest.getCount());
         ProductEntityResponse productEntityResponse = restConsumerProduct.getProduct(orderCreateRequest.getProductId());
 
         OrderEntity orderEntity = orderMapper.toOrderEntity(orderCreateRequest, productEntityResponse);
@@ -75,7 +76,7 @@ public class OrderServiceImpl implements OrderService {
             }
 
         } else {
-            countEnough(orderUpdateRequest.getProductId(), updateCount);
+            checkProductCount(orderUpdateRequest.getProductId(), updateCount);
 
             ProductEntityResponse productEntityResponse = restConsumerProduct.getProduct(orderUpdateRequest.getProductId());
             Double price = productEntityResponse.getCurrentPrice();
