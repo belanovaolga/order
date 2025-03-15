@@ -8,14 +8,4 @@
       </database-info>
     </database-infos>
   </component>
-  <component name="AmplicodePersistenceUnitSettings">
-    <persistence-units>
-      <persistence-unit name="Default"
-                        defaultIncludeChangeLogFile="src/main/resources/db/changelog/db.changelog-master.xml">
-        <packages>
-          <package value="com.example.order_module" />
-        </packages>
-      </persistence-unit>
-    </persistence-units>
-  </component>
 </project>
