@@ -1,0 +1,41 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: order-service
+  datasource:
+    driverClassName: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/marketplace
+    username: postgres
+    password: 1234
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+      dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  liquibase:
+    change-log: classpath:/db/changelog/db.changelog-master.xml
+
+  kafka:
+    bootstrap-servers: localhost:29092
+
+  mail:
+    protocol: smtps
+    host: smtp.mail.ru
+    port: 465
+    username:
+    password:
+    subject: Your personal offer
+
+service:
+  host:
+    product: http://localhost:8700
+    employee: http://localhost:8090
+
+schedule:
+  time: "0 0 19 * * ?"
