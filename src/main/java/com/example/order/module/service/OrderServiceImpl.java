@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -24,7 +25,6 @@ public class OrderServiceImpl implements OrderService {
     private final ClientProduct restConsumerProduct;
     private final OrderMapper orderMapper;
     private final KafkaSender kafkaSender;
-
 
     @Transactional
     @Override
@@ -139,7 +139,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         List<Long> prodId = personalList.stream()
-                .filter(x -> x.getOrderDate().isAfter(LocalDateTime.now().minusMonths(1)))
+                .filter(x -> x.getOrderDate().isAfter(LocalDateTime.now().minusMonths(1).atZone(ZoneId.systemDefault()).toInstant()))
                 .map(OrderEntity::getProductId)
                 .toList();
 
