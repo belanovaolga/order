@@ -17,7 +17,8 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +50,7 @@ public class ScheduledTaskService {
                         employeeId -> {
                             List<Long> productIdList = new ArrayList<>();
                             return orderResponseList.stream().filter(x -> x.getCustomerId().equals(employeeId))
-                                    .filter(x -> x.getOrderDate().isAfter(LocalDateTime.now().minusMonths(1)))
+                                    .filter(x -> x.getOrderDate().isAfter(Instant.now().atZone(ZoneId.systemDefault()).minusMonths(1).toInstant()))
                                     .map(orderResponse -> {
                                         Long productId = orderResponse.getProductId();
                                         productIdList.add(productId);

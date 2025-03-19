@@ -1,13 +1,14 @@
-package com.example.order_module.controllerTest;
+package com.example.order.module.controllerTest;
 
-import com.example.order_module.kafka.KafkaSender;
-import com.example.order_module.model.OrderEntity;
-import com.example.order_module.model.request.OrderCreateRequest;
-import com.example.order_module.model.request.OrderUpdateRequest;
-import com.example.order_module.model.request.ProductCountDto;
-import com.example.order_module.model.response.ProductEntityResponse;
-import com.example.order_module.repository.OrderRepository;
-import com.example.order_module.rest.RestConsumer;
+
+import com.example.order.module.kafka.KafkaSender;
+import com.example.order.module.model.OrderEntity;
+import com.example.order.module.model.request.OrderCreateRequest;
+import com.example.order.module.model.request.OrderUpdateRequest;
+import com.example.order.module.model.request.ProductCountDto;
+import com.example.order.module.model.response.ProductEntityResponse;
+import com.example.order.module.repository.OrderRepository;
+import com.example.order.module.rest.ClientProduct;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import org.jeasy.random.EasyRandom;
@@ -20,6 +21,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
+import java.util.UUID;
+
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -30,7 +33,7 @@ class OrderControllerTest extends ControllerTest {
     private ObjectMapper objectMapper;
     private final EasyRandom generator;
     @MockBean
-    private RestConsumer restConsumer;
+    private ClientProduct clientProduct;
     @Autowired
     private OrderRepository orderRepository;
     @MockBean
@@ -51,7 +54,7 @@ class OrderControllerTest extends ControllerTest {
         OrderEntity orderEntity = generator.nextObject(OrderEntity.class);
         OrderCreateRequest orderCreateRequest = mergeToOrderCreateRequest(orderEntity);
         ProductEntityResponse productEntityResponse = mergeToProductEntityResponse(orderEntity);
-        Mockito.when(restConsumer.getProduct(productEntityResponse.getId())).thenReturn(productEntityResponse);
+        Mockito.when(clientProduct.getProduct(productEntityResponse.getId())).thenReturn(productEntityResponse);
         Mockito.doNothing().when(kafkaSender).sendProductCount(mergeToProductCountDto(orderEntity));
 
         mockMvc.perform(MockMvcRequestBuilders.post("/order")
@@ -73,7 +76,7 @@ class OrderControllerTest extends ControllerTest {
         OrderEntity orderEntity = generator.nextObject(OrderEntity.class);
         OrderEntity savedOrderEntity = orderRepository.save(orderEntity);
 
-        Long orderId = savedOrderEntity.getId();
+        UUID orderId = savedOrderEntity.getId();
         OrderEntity updatedOrderEntity = generator.nextObject(OrderEntity.class);
         updatedOrderEntity.setId(orderId);
         updatedOrderEntity.setCustomerId(orderEntity.getCustomerId());
@@ -82,14 +85,14 @@ class OrderControllerTest extends ControllerTest {
                 .count(updatedOrderEntity.getCount())
                 .build();
         ProductEntityResponse productEntityResponse = mergeToProductEntityResponse(updatedOrderEntity);
-        Mockito.when(restConsumer.getProduct(orderUpdateRequest.getProductId())).thenReturn(productEntityResponse);
+        Mockito.when(clientProduct.getProduct(orderUpdateRequest.getProductId())).thenReturn(productEntityResponse);
 
         mockMvc.perform(MockMvcRequestBuilders.put("/order/{orderId}", orderId)
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .accept(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(orderUpdateRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(orderId))
+                .andExpect(jsonPath("$.id").value(orderId.toString()))
                 .andExpect(jsonPath("$.customerId").value(updatedOrderEntity.getCustomerId()))
                 .andExpect(jsonPath("$.productId").value(updatedOrderEntity.getProductId()))
                 .andExpect(jsonPath("$.productName").value(updatedOrderEntity.getProductName()))
@@ -103,7 +106,7 @@ class OrderControllerTest extends ControllerTest {
     void shouldDeleteOrder() {
         OrderEntity orderEntity = generator.nextObject(OrderEntity.class);
         OrderEntity savedOrderEntity = orderRepository.save(orderEntity);
-        Long orderId = savedOrderEntity.getId();
+        UUID orderId = savedOrderEntity.getId();
 
         mockMvc.perform(MockMvcRequestBuilders.delete("/order/{orderId}", orderId)
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -115,7 +118,7 @@ class OrderControllerTest extends ControllerTest {
     @Test
     @SneakyThrows
     void shouldDeleteOrder_whenOrderNotFound() {
-        Long orderId = 15L;
+        UUID orderId = UUID.randomUUID();
 
         mockMvc.perform(MockMvcRequestBuilders.delete("/order/{orderId}", orderId)
                         .contentType(MediaType.APPLICATION_JSON_VALUE)

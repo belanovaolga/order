@@ -17,6 +17,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -44,9 +45,8 @@ public class OrderServiceImpl implements OrderService {
         return orderEntity;
     }
 
-    @Transactional
     @Override
-    public OrderEntity updateOrder(Long orderId, OrderUpdateRequest orderUpdateRequest) {
+    public OrderEntity updateOrder(UUID orderId, OrderUpdateRequest orderUpdateRequest) {
         OrderEntity currentOrder = findById(orderId);
 
         Long updateCount = orderUpdateRequest.getCount();
@@ -58,7 +58,7 @@ public class OrderServiceImpl implements OrderService {
             if (!Objects.equals(currentCount, updateCount)) {
                 boolean deleteProduct = currentCount < updateCount;
                 if (deleteProduct) {
-                    countEnough(orderUpdateRequest.getProductId(), difference);
+                    checkProductCount(orderUpdateRequest.getProductId(), difference);
                 }
 
                 Double price = restConsumerProduct.getProduct(orderUpdateRequest.getProductId()).getCurrentPrice();
@@ -105,13 +105,13 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public OrderResponse findOrderById(Long orderId) {
+    public OrderResponse findOrderById(UUID orderId) {
         return orderMapper.toOrderResponse(findById(orderId));
     }
 
     @Transactional
     @Override
-    public void deleteOrder(Long orderId) {
+    public void deleteOrder(UUID orderId) {
         OrderEntity orderEntity = findById(orderId);
         orderRepository.delete(orderEntity);
         kafkaSender.sendProductCount(ProductCountDto.builder()
@@ -157,7 +157,7 @@ public class OrderServiceImpl implements OrderService {
         return restConsumerProduct.getPersonalOfferList(personalOfferListRequest);
     }
 
-    private void countEnough(
+    private void checkProductCount(
             Long productId,
             Long currentCount
     ) {
@@ -167,7 +167,7 @@ public class OrderServiceImpl implements OrderService {
         }
     }
 
-    private OrderEntity findById(Long id) {
+    private OrderEntity findById(UUID id) {
         return orderRepository.findById(id).orElseThrow(() -> new DatabaseException("The order does not exist", 404));
     }
 

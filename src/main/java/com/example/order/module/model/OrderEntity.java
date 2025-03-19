@@ -1,6 +1,6 @@
 package com.example.order.module.model;
 
-import com.example.order_module.converter.InstantLongConverter;
+import com.example.order.module.converter.InstantLongConverter;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Entity
 @Builder
@@ -17,9 +18,8 @@ import java.time.Instant;
 @Table(name = "ord")
 public class OrderEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "orderSeqGen")
-    @SequenceGenerator(name = "orderSeqGen", sequenceName = "order_sequence_name", allocationSize = 1)
-    private Long id;
+    @GeneratedValue(generator = "UUID")
+    private UUID id;
     private Long number;
     @Column(name = "order_date")
     @Convert(converter = InstantLongConverter.class)
