@@ -1,4 +1,4 @@
-package com.example.order_module.controllerTest;
+package com.example.order.module.controllerTest;
 
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;

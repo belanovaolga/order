@@ -9,10 +9,11 @@ import org.mapstruct.Mapping;
 
 import java.util.List;
 
-@Mapper
+@Mapper(componentModel = "spring")
 public interface OrderMapper {
 
-    @Mapping(target = "orderDate", expression = "java(java.time.LocalDateTime.now())")
+    @Mapping(target = "id", expression = "java(java.util.UUID.randomUUID())")
+    @Mapping(target = "orderDate", expression = "java(java.time.Instant.now())")
     @Mapping(target = "number", expression = "java(null)")
     @Mapping(source = "orderCreateRequest.customerId", target = "customerId")
     @Mapping(source = "orderCreateRequest.productId", target = "productId")

@@ -1,4 +1,4 @@
-package com.example.order_module.converter;
+package com.example.order.module.converter;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;

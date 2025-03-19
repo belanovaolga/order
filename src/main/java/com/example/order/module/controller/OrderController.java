@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/order")
@@ -25,7 +27,7 @@ public class OrderController {
 
     @PutMapping("/{orderId}")
     public ResponseEntity<OrderEntity> updateOrder(
-            @PathVariable Long orderId,
+            @PathVariable UUID orderId,
             @RequestBody OrderUpdateRequest orderUpdateRequest
     ) {
         return ResponseEntity.ok(orderService.updateOrder(orderId, orderUpdateRequest));
@@ -33,7 +35,7 @@ public class OrderController {
 
     @DeleteMapping("/{orderId}")
     public void deleteOrder(
-            @PathVariable Long orderId
+            @PathVariable UUID orderId
     ) {
         orderService.deleteOrder(orderId);
         ResponseEntity.ok();

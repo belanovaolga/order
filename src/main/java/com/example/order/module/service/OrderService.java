@@ -9,12 +9,19 @@ import com.example.order.module.model.response.OrderResponse;
 import com.example.order.module.model.response.PersonalOfferListResponse;
 import com.example.order.module.model.response.PersonalOfferResponse;
 
+import java.util.UUID;
+
 public interface OrderService {
     OrderEntity createOrder(OrderCreateRequest orderCreateRequest);
-    OrderEntity updateOrder(Long orderId, OrderUpdateRequest orderUpdateRequest);
-    OrderResponse findOrderById(Long id);
-    void deleteOrder(Long orderId);
+
+    OrderEntity updateOrder(UUID orderId, OrderUpdateRequest orderUpdateRequest);
+
+    OrderResponse findOrderById(UUID id);
+
+    void deleteOrder(UUID orderId);
+
     OrderListResponse ordersList(Long customerId);
+
     PersonalOfferResponse getPersonalOffer(Long customerId);
 
     OrderListResponse getAllOrders();

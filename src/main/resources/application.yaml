@@ -38,4 +38,5 @@ service:
     employee: http://localhost:8090
 
 schedule:
-  time: "0 0 19 * * ?"
+  send:
+    time: "0 0 19 * * ?"
