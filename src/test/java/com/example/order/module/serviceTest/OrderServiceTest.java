@@ -19,13 +19,15 @@ import com.example.order.module.service.OrderService;
 import com.example.order.module.service.OrderServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.springframework.transaction.support.TransactionTemplate;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -36,10 +38,11 @@ class OrderServiceTest {
     private final ClientProductImpl mockRestConsumerImpl;
     private final KafkaSender mockKafkaSender;
     private final OrderMapper orderMapper;
-    private final LocalDateTime dataTime;
+    private final Instant dataTime;
     private final OrderEntity order1;
     private final OrderEntity order2;
     private final OrderEntity orderNew;
+    private final UUID orderId;
     private final ProductEntityResponse product1;
     private final ProductEntityResponse product2;
 
@@ -48,14 +51,15 @@ class OrderServiceTest {
         orderMapper = new OrderMapperImpl();
         mockRestConsumerImpl = Mockito.mock(ClientProductImpl.class);
         mockKafkaSender = Mockito.mock(KafkaSender.class);
-        TransactionTemplate transactionTemplate = Mockito.mock(TransactionTemplate.class);
-        orderService = new OrderServiceImpl(mockOrderRepository, mockRestConsumerImpl, orderMapper, mockKafkaSender, transactionTemplate);
+        orderService = new OrderServiceImpl(mockOrderRepository, mockRestConsumerImpl, orderMapper, mockKafkaSender);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-        dataTime = LocalDateTime.parse(LocalDateTime.now().format(formatter), formatter);
+        String formattedDateTime = Instant.now().atZone(ZoneId.systemDefault()).format(formatter);
+        dataTime = ZonedDateTime.parse(formattedDateTime, formatter.withZone(ZoneId.systemDefault())).toInstant();
         order1 = OrderEntity.builder().orderDate(dataTime).customerId(1L).productId(1L).productName("apple").price(89.99).count(1L).sum(89.99).build();
         order2 = OrderEntity.builder().orderDate(dataTime).customerId(1L).productId(2L).productName("lemon").price(119.99).count(1L).sum(119.99).build();
-        orderNew = OrderEntity.builder().id(1L).orderDate(dataTime).customerId(1L).productId(1L).productName("apple").price(89.99).count(2L).sum(179.98).build();
+        orderId = UUID.randomUUID();
+        orderNew = OrderEntity.builder().id(orderId).orderDate(dataTime).customerId(1L).productId(1L).productName("apple").price(89.99).count(2L).sum(179.98).build();
         product1 = ProductEntityResponse.builder().id(1L).name("apple").description("gold apple").count(45L).currentPrice(89.99).build();
         product2 = ProductEntityResponse.builder().id(2L).name("lemon").description("soul lemon").count(76L).currentPrice(119.99).build();
     }
@@ -69,7 +73,7 @@ class OrderServiceTest {
         Mockito.doNothing().when(mockKafkaSender).sendProductCount(ProductCountDto.builder().productId(product1.getId()).count(product1.getCount()).deleteProduct(true).build());
 
         OrderEntity actualOrder = orderService.createOrder(orderCreateRequest);
-        actualOrder.setId(1L);
+        actualOrder.setId(orderId);
         actualOrder.setOrderDate(dataTime);
 
         assertEquals(orderNew, actualOrder);
@@ -101,10 +105,11 @@ class OrderServiceTest {
 
     @Test
     void shouldFindOrderById_whenOrderNotFound() {
-        Mockito.when(mockOrderRepository.findById(20L)).thenReturn(Optional.empty());
+        UUID randomUUID = UUID.randomUUID();
+        Mockito.when(mockOrderRepository.findById(randomUUID)).thenReturn(Optional.empty());
 
         assertThrows(DatabaseException.class, () -> {
-            orderService.findOrderById(20L);
+            orderService.findOrderById(randomUUID);
         });
     }
 
@@ -118,7 +123,7 @@ class OrderServiceTest {
         Mockito.doNothing().when(mockKafkaSender).sendProductCount(ProductCountDto.builder().productId(product1.getId()).count(product1.getCount()).deleteProduct(false).build());
 
         assertThrows(DatabaseException.class, () -> {
-            orderService.findOrderById(product1.getId());
+            orderService.findOrderById(orderId);
         });
     }
 
